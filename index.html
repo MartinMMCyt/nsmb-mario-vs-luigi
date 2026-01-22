@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Grand Theft Auto Launcher</title>
+
+    <style>
+        /* Fullscreen animated canvas background */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: -2;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .top-bar {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            z-index: 2;
+        }
+
+        h2 {
+            margin: 0;
+            font-size: 3em;
+            text-shadow:
+                0 0 5px #0ff,
+                0 0 10px #0ff,
+                0 0 20px #0ff,
+                0 0 30px #0ff;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 20px;
+        }
+
+        button {
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            transition: transform 0.2s ease, background 0.25s ease;
+            text-shadow: 0 0 6px #fff;
+        }
+
+        .blue-btn {
+            background: #2979ff;
+            box-shadow: 0 0 10px #2979ff, 0 0 20px #2979ff;
+        }
+
+        .blue-btn:hover {
+            background: #1565c0;
+            transform: scale(1.1);
+        }
+        
+        .red-btn {
+            background: #E53935;
+            box-shadow: 0 0 10px #E53935, 0 0 20px #E53935;
+        }
+
+        .red-btn:hover {
+            background: #c62828;
+            transform: scale(1.1);
+        }
+
+        #viewer {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: none;
+            z-index: 5;
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="top-bar" id="menu">
+        <h2>NSMB Mario VS Luigi</h2>
+        <div class="button-container">
+            <button class="blue-btn" onclick="loadProject('https://martinmmcyt.github.io/nsmb-mario-vs-luigi/mobile.html')">
+                mobile.html
+            </button>
+            <button class="red-btn" onclick="loadProject('https://martinmmcyt.github.io/nsmb-mario-vs-luigi/pc.html')">
+                pc.html
+            </button>
+        </div>
+    </div>
+
+    <iframe id="viewer"></iframe>
+
+    <script>
+        const canvas = document.getElementById("bg-canvas");
+        const ctx = canvas.getContext("2d");
+        const viewer = document.getElementById("viewer");
+        const menu = document.getElementById("menu");
+
+        let particlesArray = [];
+        let animationId;
+
+        const MAX_PARTICLES = 50;
+        const MAX_DISTANCE = 100;
+        const COLORS = ['#0ff', '#ff0', '#f0f', '#0f0', '#f0ff'];
+
+        function loadProject(url) {
+            menu.style.display = "none";
+
+            // stop animation immediately
+            cancelAnimationFrame(animationId);
+            canvas.style.display = "none";
+
+            // show iframe
+            viewer.src = url;
+            viewer.style.display = "block";
+        }
+
+        function init() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            particlesArray = [];
+
+            for (let i = 0; i < MAX_PARTICLES; i++) {
+                particlesArray.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 3 + 1,
+                    speedX: (Math.random() - 0.5) * 1.2,
+                    speedY: (Math.random() - 0.5) * 1.2,
+                    color: COLORS[Math.floor(Math.random() * COLORS.length)]
+                });
+            }
+        }
+
+        function connect() {
+            for (let a = 0; a < particlesArray.length; a++) {
+                for (let b = a + 1; b < particlesArray.length; b++) {
+                    let dx = particlesArray[a].x - particlesArray[b].x;
+                    let dy = particlesArray[a].y - particlesArray[b].y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < MAX_DISTANCE) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(${hexToRgb(particlesArray[a].color)},${0.5 - distance / (2 * MAX_DISTANCE)})`;
+                        ctx.lineWidth = 1.2;
+                        ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                        ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function hexToRgb(hex) {
+            let c = hex.replace('#', '');
+            if (c.length === 3) {
+                c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
+            }
+            const bigint = parseInt(c, 16);
+            return `${(bigint >> 16) & 255},${(bigint >> 8) & 255},${bigint & 255}`;
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            particlesArray.forEach(p => {
+                p.x += p.speedX;
+                p.y += p.speedY;
+
+                if (p.x < 0 || p.x > canvas.width) p.speedX *= -1;
+                if (p.y < 0 || p.y > canvas.height) p.speedY *= -1;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 8;
+                ctx.fill();
+            });
+
+            connect();
+            animationId = requestAnimationFrame(animate);
+        }
+
+        window.addEventListener("resize", init);
+
+        init();
+        animate();
+    </script>
+
+</body>
+
+</html>
